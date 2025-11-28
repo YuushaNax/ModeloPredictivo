@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/cabaa6a11fb3431ba3532523839a6909/artifacts
+end_time: 1763845647693
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: cabaa6a11fb3431ba3532523839a6909
+run_name: capricious-doe-244
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763845645567
+status: 3
+tags: []
+user_id: nicol

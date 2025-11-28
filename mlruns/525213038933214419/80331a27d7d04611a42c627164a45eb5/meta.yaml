@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/80331a27d7d04611a42c627164a45eb5/artifacts
+end_time: 1763845643392
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: 80331a27d7d04611a42c627164a45eb5
+run_name: merciful-cub-511
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763845643166
+status: 3
+tags: []
+user_id: nicol

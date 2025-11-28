@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/19b1de046e584460a95ca1ade0286b94/artifacts
+end_time: 1763843621189
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: 19b1de046e584460a95ca1ade0286b94
+run_name: judicious-bat-436
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763843620312
+status: 3
+tags: []
+user_id: nicol

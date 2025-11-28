@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/15779179fceb41a5ada2e5ea1ba31a49/artifacts
+end_time: 1763921193763
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: 15779179fceb41a5ada2e5ea1ba31a49
+run_name: enthused-lark-673
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763921193529
+status: 3
+tags: []
+user_id: nicol

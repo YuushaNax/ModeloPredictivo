@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/d61a16db459b4a18b30a116ffd26a200/artifacts
+end_time: 1763844478804
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: d61a16db459b4a18b30a116ffd26a200
+run_name: bemused-cow-386
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763844478624
+status: 3
+tags: []
+user_id: nicol

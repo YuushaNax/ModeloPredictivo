@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/357ef0625918409d97b41eed313bff34/artifacts
+end_time: 1763844480753
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: 357ef0625918409d97b41eed313bff34
+run_name: smiling-donkey-119
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763844480621
+status: 3
+tags: []
+user_id: nicol

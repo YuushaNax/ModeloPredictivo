@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/fa34365ebebb47c89238d7cc7969c6b9/artifacts
+end_time: 1763921196016
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: fa34365ebebb47c89238d7cc7969c6b9
+run_name: rumbling-fawn-790
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763921195904
+status: 3
+tags: []
+user_id: nicol
