@@ -39,7 +39,7 @@ uvicorn src.app:app --reload --port 8000
 4. Predictions (example):
 
 ```powershell
-python src\predict.py --sample "Mes=5;Hora=13:45;Distancia Kilometros=12;Tipo de Vehiculo=Moto;Clima=Lluvioso"
+python -m src.predict --sample "Mes=5;Hora=02:30;Distancia Kilometros=150;Tipo de Vehiculo=Moto;Clima=Lluvioso;Velocidad Promedio=120;Edad Conductor=22;Experiencia Conductor=2;Alcohol en Sangre=1;Visibilidad=Mala;Estado de la Via=Mojada;Iluminacion=Noche;Cinturon=No;Tipo de Carretera=Rural;Dia de la Semana=3" --models_dir models
 ```
 
 Files added
