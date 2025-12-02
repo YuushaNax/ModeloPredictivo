@@ -1,0 +1,78 @@
+Sistema Predictivo de Seguridad Vial
+
+
+
+
+
+
+
+
+
+
+
+
+Integrantes:  Francisco Abarca, Nicolas Burgos, Gerson Fuentealba, Hans Beiza.
+Docente: Florentino Pérez
+Modulo: Minería de datos
+Fecha: 05-12-2025
+
+
+
+
+
+Descripción de la problemática
+El proyecto aborda la predicción de variables relacionadas con accidentes de tránsito en Chile mediante Machine Learning. El sistema entrega tres predicciones: Probabilidad de Accidente, Accidente y Condición del Vehículo. El propósito es generar información útil en tiempo real para mejorar la seguridad vial y apoyar la toma de decisiones.
+
+Variables del dataset
+El dataset contiene 10.000 registros.
+Variables de entrada:
+- Mes
+- Hora de salida
+- Distancia (km)
+- Tipo de Vehículo
+- Clima
+- Día de la semana
+- Tipo de carretera
+- Velocidad promedio
+- Edad del conductor
+- Experiencia del conductor
+- Alcohol en sangre
+- Visibilidad
+- Estado de la vía
+- Iluminación
+- Cinturón
+
+Variables target:
+
+Probabilidad de Accidente
+Accidente
+Condición del Vehículo
+
+Solución propuesta
+La arquitectura considera un pipeline de datos, modelos Random Forest, dashboard para visualización y API REST para acceder a las predicciones.
+
+EDA
+Se revisaron distribuciones, patrones temporales, efectos del clima, visibilidad, velocidad y otros factores. Se observaron correlaciones entre clima lluvioso, velocidades altas, visibilidad baja y mayor riesgo de accidente.
+
+Pipeline de Preprocesamiento
+Incluye conversión de porcentajes a números, transformación de hora HH:MM, limpieza, codificación categórica, normalización y división del dataset en train/test con validación cruzada.
+
+Modelado Random Forest
+Se entrenaron tres modelos Random Forest: Regresor (Probabilidad), Clasificador (Accidente), Regresor (Condición del Vehículo).
+Ejemplo de hiperparámetros: n_estimators=300, max_depth=15, min_samples_split=4, random_state=42.
+
+Métricas de evaluación
+Regresión: MAE, RMSE, R².
+Clasificación: Accuracy, Precision, Recall, F1-score y AUC-ROC.
+
+Importancia de variables
+Entre las variables más influyentes se encontraron: clima, visibilidad, velocidad promedio, tipo de carretera, hora de salida, alcohol en sangre, iluminación y condición del vehículo.
+
+Modelo
+Endpoint: POST /predict.
+Devuelve probabilidad accidente, accidente y condicion_vehiculo. Incluye validaciones de tipos y manejo de errores.
+
+Pruebas y evidencias
+
+Conclusiones
+El sistema basado en Random Forest permite estimar la probabilidad de accidente, ocurrencia y condición del vehículo con alta robustez. Se recomienda mantener el dataset actualizado y reentrenar periódicamente.
