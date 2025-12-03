@@ -8,6 +8,7 @@ import pandas as pd
 import joblib
 from pathlib import Path
 from src.utils import load_and_prepare
+import src.visualize as visualize
 import numpy as np
 
 
@@ -23,42 +24,42 @@ class PipelineGUI(tk.Tk):
 
         # Tab 1: Runner / pipeline
         tab_run = ttk.Frame(self.nb)
-        self.nb.add(tab_run, text='Run')
+        self.nb.add(tab_run, text='Ejecutar')
 
         frm = ttk.Frame(tab_run)
         frm.pack(fill='x', padx=8, pady=8)
 
-        ttk.Label(frm, text='Data file (xlsx/csv):').grid(row=0, column=0, sticky='w')
+        ttk.Label(frm, text='Archivo de datos (xlsx/csv):').grid(row=0, column=0, sticky='w')
         self.data_entry = ttk.Entry(frm, width=60)
         self.data_entry.grid(row=0, column=1, sticky='w')
-        ttk.Button(frm, text='Browse', command=self.browse_data).grid(row=0, column=2, padx=4)
+        ttk.Button(frm, text='Examinar', command=self.browse_data).grid(row=0, column=2, padx=4)
 
         # Generate options
         self.generate_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(frm, text='Generate synthetic data', variable=self.generate_var).grid(row=1, column=0, sticky='w')
-        ttk.Label(frm, text='Rows:').grid(row=1, column=1, sticky='w')
+        ttk.Checkbutton(frm, text='Generar datos sintéticos', variable=self.generate_var).grid(row=1, column=0, sticky='w')
+        ttk.Label(frm, text='Filas:').grid(row=1, column=1, sticky='w')
         self.rows_entry = ttk.Entry(frm, width=10)
         self.rows_entry.insert(0, '10000')
         self.rows_entry.grid(row=1, column=1, sticky='e')
 
         # Visualize
         self.visualize_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(frm, text='Generate EDA plots', variable=self.visualize_var).grid(row=2, column=0, sticky='w')
+        ttk.Checkbutton(frm, text='Generar gráficas EDA', variable=self.visualize_var).grid(row=2, column=0, sticky='w')
 
         # Train options
         self.train_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(frm, text='Train models', variable=self.train_var).grid(row=3, column=0, sticky='w')
-        ttk.Label(frm, text='Optuna trials:').grid(row=3, column=1, sticky='w')
+        ttk.Checkbutton(frm, text='Entrenar modelos', variable=self.train_var).grid(row=3, column=0, sticky='w')
+        ttk.Label(frm, text='Ensayos Optuna:').grid(row=3, column=1, sticky='w')
         self.optuna_entry = ttk.Entry(frm, width=10)
         self.optuna_entry.insert(0, '0')
         self.optuna_entry.grid(row=3, column=1, sticky='e')
 
-        ttk.Label(frm, text='Max rows for training (0=all):').grid(row=4, column=0, sticky='w')
+        ttk.Label(frm, text='Máx filas para entrenar (0=todas):').grid(row=4, column=0, sticky='w')
         self.maxrows_entry = ttk.Entry(frm, width=10)
         self.maxrows_entry.insert(0, '0')
         self.maxrows_entry.grid(row=4, column=1, sticky='w')
 
-        ttk.Label(frm, text='Models out dir:').grid(row=5, column=0, sticky='w')
+        ttk.Label(frm, text='Directorio salida modelos:').grid(row=5, column=0, sticky='w')
         self.out_entry = ttk.Entry(frm, width=40)
         self.out_entry.insert(0, 'models')
         self.out_entry.grid(row=5, column=1, sticky='w')
@@ -66,8 +67,8 @@ class PipelineGUI(tk.Tk):
         # Buttons
         btn_frm = ttk.Frame(tab_run)
         btn_frm.pack(fill='x', padx=8, pady=4)
-        ttk.Button(btn_frm, text='Run', command=self.run_pipeline).pack(side='left')
-        ttk.Button(btn_frm, text='Stop', command=self.stop_pipeline).pack(side='left')
+        ttk.Button(btn_frm, text='Ejecutar', command=self.run_pipeline).pack(side='left')
+        ttk.Button(btn_frm, text='Detener', command=self.stop_pipeline).pack(side='left')
 
         # Log output
         self.log = tk.Text(tab_run, wrap='none')
@@ -78,36 +79,37 @@ class PipelineGUI(tk.Tk):
 
         # Tab 2: Results table and file predictions
         tab_results = ttk.Frame(self.nb)
-        self.nb.add(tab_results, text='Results')
+        self.nb.add(tab_results, text='Resultados')
 
         res_top = ttk.Frame(tab_results)
         res_top.pack(fill='x', padx=8, pady=8)
-        ttk.Label(res_top, text='Input file to predict:').grid(row=0, column=0, sticky='w')
+        ttk.Label(res_top, text='Archivo de entrada para predecir:').grid(row=0, column=0, sticky='w')
         self.predict_file_entry = ttk.Entry(res_top, width=60)
         self.predict_file_entry.grid(row=0, column=1, sticky='w')
-        ttk.Button(res_top, text='Browse', command=self.browse_predict_file).grid(row=0, column=2, padx=4)
-        ttk.Button(res_top, text='Load and Predict', command=self.predict_file).grid(row=0, column=3, padx=4)
-        ttk.Button(res_top, text='Save predictions to Excel', command=self.save_predictions).grid(row=0, column=4, padx=4)
-        ttk.Button(res_top, text='Generate empty template from file', command=self.generate_template_from_file).grid(row=1, column=1, sticky='w', pady=4)
+        ttk.Button(res_top, text='Examinar', command=self.browse_predict_file).grid(row=0, column=2, padx=4)
+        ttk.Button(res_top, text='Cargar y Predecir', command=self.predict_file).grid(row=0, column=3, padx=4)
+        ttk.Button(res_top, text='Guardar predicciones (Excel)', command=self.save_predictions).grid(row=0, column=4, padx=4)
+        ttk.Button(res_top, text='Generar plantilla vacía', command=self.generate_template_from_file).grid(row=1, column=1, sticky='w', pady=4)
 
-        # Treeview for results
-        self.results_tv = ttk.Treeview(tab_results)
-        self.results_tv.pack(fill='both', expand=True, padx=8, pady=8)
+        # Area for analysis: plots and metrics (replaces dataset table)
+        self.results_area = ttk.Frame(tab_results)
+        self.results_area.pack(fill='both', expand=True, padx=8, pady=8)
+        self._report_images = []
 
         # Tab 3: Single case predictor
         tab_single = ttk.Frame(self.nb)
-        self.nb.add(tab_single, text='Single Case')
+        self.nb.add(tab_single, text='Caso Único')
 
         sc_top = ttk.Frame(tab_single)
         sc_top.pack(fill='x', padx=8, pady=8)
-        ttk.Button(sc_top, text='Load columns from file', command=self.load_columns_for_single).pack(side='left')
-        ttk.Button(sc_top, text='Predict single case', command=self.predict_single_case).pack(side='left')
+        ttk.Button(sc_top, text='Cargar columnas desde archivo', command=self.load_columns_for_single).pack(side='left')
+        ttk.Button(sc_top, text='Predecir caso único', command=self.predict_single_case).pack(side='left')
 
         self.single_fields_frame = ttk.Frame(tab_single)
         self.single_fields_frame.pack(fill='both', expand=True, padx=8, pady=8)
 
         # place to show single case predictions
-        self.single_result_label = ttk.Label(tab_single, text='Prediction: -')
+        self.single_result_label = ttk.Label(tab_single, text='Predicción: -')
         self.single_result_label.pack(padx=8, pady=8)
 
         # keep track of current loaded columns and last predictions
@@ -126,7 +128,7 @@ class PipelineGUI(tk.Tk):
 
     def run_pipeline(self):
         if self.thread and self.thread.is_alive():
-            messagebox.showinfo('Running', 'Pipeline is already running')
+            messagebox.showinfo('En ejecución', 'El pipeline ya está en ejecución')
             return
 
         data_file = self.data_entry.get().strip() or 'datos_entrenamiento_10000.xlsx'
@@ -154,7 +156,7 @@ class PipelineGUI(tk.Tk):
             cmds.append(cmd)
 
         if not cmds:
-            messagebox.showinfo('Nothing to do', 'No steps selected')
+            messagebox.showinfo('Nada para hacer', 'No se seleccionaron pasos')
             return
 
         # Run in thread
@@ -169,7 +171,7 @@ class PipelineGUI(tk.Tk):
                     if self.process.returncode != 0:
                         self.append_log(f'Command failed with code {self.process.returncode}\n')
                         break
-                self.append_log('\nPipeline finished.\n')
+                self.append_log('\nPipeline finalizado.\n')
             except Exception as e:
                 self.append_log(f'Error: {e}\n')
             finally:
@@ -182,11 +184,11 @@ class PipelineGUI(tk.Tk):
         if self.process:
             try:
                 self.process.terminate()
-                self.append_log('\nProcess terminated by user.\n')
+                self.append_log('\nProceso terminado por el usuario.\n')
             except Exception as e:
-                self.append_log(f'Failed to terminate process: {e}\n')
+                self.append_log(f'No se pudo terminar el proceso: {e}\n')
         else:
-            messagebox.showinfo('No process', 'No running process to stop')
+            messagebox.showinfo('Sin proceso', 'No hay procesos en ejecución para detener')
 
     # --- Results / prediction helpers ---
     def browse_predict_file(self):
@@ -217,7 +219,7 @@ class PipelineGUI(tk.Tk):
     def predict_file(self):
         p = self.predict_file_entry.get().strip()
         if not p:
-            messagebox.showinfo('No file', 'Please select a file to predict')
+            messagebox.showinfo('Sin archivo', 'Por favor seleccione un archivo para predecir')
             return
         try:
             if p.lower().endswith('.csv'):
@@ -225,7 +227,7 @@ class PipelineGUI(tk.Tk):
             else:
                 df = pd.read_excel(p)
         except Exception as e:
-            messagebox.showerror('Read error', f'Failed to read file: {e}')
+            messagebox.showerror('Error de lectura', f'No se pudo leer el archivo: {e}')
             return
 
         prob_m, cond_m, acc_m = self._load_models()
@@ -243,7 +245,7 @@ class PipelineGUI(tk.Tk):
         try:
             input_df = load_and_prepare(input_df)
         except Exception as e:
-            messagebox.showerror('Preprocess error', f'Failed to preprocess input data: {e}')
+            messagebox.showerror('Error de preprocesado', f'No se pudo preprocesar los datos de entrada: {e}')
             return
 
         # Ensure the input has all columns expected by the model preprocessor; fill missing ones
@@ -262,13 +264,13 @@ class PipelineGUI(tk.Tk):
         try:
             prob_pred = prob_m.predict(input_df)
         except Exception as e:
-            messagebox.showerror('Model predict error', f'Prob model prediction failed: {e}')
+            messagebox.showerror('Error de modelo', f'La predicción (probabilidad) falló: {e}')
             return
 
         try:
             cond_pred = cond_m.predict(input_df)
         except Exception as e:
-            messagebox.showerror('Model predict error', f'Cond model prediction failed: {e}')
+            messagebox.showerror('Error de modelo', f'La predicción (condición) falló: {e}')
             return
 
         try:
@@ -279,7 +281,7 @@ class PipelineGUI(tk.Tk):
             except Exception:
                 acc_proba = None
         except Exception as e:
-            messagebox.showerror('Model predict error', f'Acc model prediction failed: {e}')
+            messagebox.showerror('Error de modelo', f'La predicción (accidente) falló: {e}')
             return
 
         # attach results
@@ -302,25 +304,90 @@ class PipelineGUI(tk.Tk):
         # keep last predictions
         self.last_predictions_df = out
 
-        # display in treeview (limit to first 200 rows)
-        self._display_results(out.head(200))
-        messagebox.showinfo('Predictions', f'Predictions added for {len(out)} rows. Displaying first 200.')
+        # Always generate fresh EDA plots for the predicted dataset
+        rep_out = os.path.join('reports', 'gui_temp')
+        try:
+            # Remove any old images in the temp folder
+            if os.path.exists(rep_out):
+                for f in os.listdir(rep_out):
+                    fp = os.path.join(rep_out, f)
+                    if os.path.isfile(fp):
+                        try:
+                            os.remove(fp)
+                        except Exception:
+                            pass
+            else:
+                os.makedirs(rep_out, exist_ok=True)
+            visualize.make_plots(out, outdir=rep_out)
+        except Exception as e:
+            messagebox.showerror('Error EDA', f'No se pudieron generar las gráficas EDA: {e}')
+        self._display_analysis(input_df, out, reports_dir=rep_out)
+        messagebox.showinfo('Predicciones', f'Se añadieron predicciones para {len(out)} filas. Análisis mostrado.')
 
     def _display_results(self, df):
-        # clear treeview
-        for col in self.results_tv.get_children():
-            self.results_tv.delete(col)
-        # configure columns
-        cols = list(df.columns)
-        self.results_tv['columns'] = cols
-        self.results_tv['show'] = 'headings'
-        for c in cols:
-            self.results_tv.heading(c, text=c)
-            self.results_tv.column(c, width=120, anchor='w')
-        # insert rows
-        for _, row in df.iterrows():
-            vals = [self._format_cell(row[c]) for c in cols]
-            self.results_tv.insert('', 'end', values=vals)
+        # legacy: replaced by analysis view; keep for compatibility
+        return
+
+    def _display_analysis(self, input_df, predictions_df, reports_dir='reports'):
+        # clear previous area
+        for w in self.results_area.winfo_children():
+            w.destroy()
+        self._report_images = []
+
+        # Metrics summary (dataset-level and prediction-level)
+        try:
+            n = len(input_df)
+            mean_prob = float(predictions_df['Probabilidad de accidente'].mean()) if 'Probabilidad de accidente' in predictions_df.columns else float('nan')
+            mean_cond = float(predictions_df['Condicion del Vehiculo'].mean()) if 'Condicion del Vehiculo' in predictions_df.columns else float('nan')
+            # predicted accident rate
+            acc_rate = None
+            if 'Accidente' in predictions_df.columns:
+                acc_vals = predictions_df['Accidente'].apply(lambda x: 1 if str(x).strip().lower() in ['sí','si','1','true'] else 0)
+                acc_rate = float(acc_vals.mean())
+        except Exception:
+            n = len(input_df)
+            mean_prob = mean_cond = acc_rate = None
+
+        metrics_frame = ttk.Frame(self.results_area)
+        metrics_frame.pack(fill='x', padx=6, pady=6)
+        ttk.Label(metrics_frame, text=f'Filas: {n}').grid(row=0, column=0, sticky='w')
+        ttk.Label(metrics_frame, text=f'Media Prob. Predicha: {mean_prob:.2f}' if mean_prob==mean_prob else 'Media Prob. Predicha: -').grid(row=0, column=1, sticky='w', padx=8)
+        ttk.Label(metrics_frame, text=f'Media Condición Predicha: {mean_cond:.2f}' if mean_cond==mean_cond else 'Media Condición Predicha: -').grid(row=0, column=2, sticky='w', padx=8)
+        ttk.Label(metrics_frame, text=f'Tasa Accidente predicha: {acc_rate:.3f}' if acc_rate is not None else 'Tasa Accidente predicha: -').grid(row=0, column=3, sticky='w', padx=8)
+
+        # Show plots generated in reports_dir
+        imgs = []
+        for name in ['hist_probabilidad.png', 'count_accidente.png', 'corr_numeric.png', 'box_prob_by_vehicle.png']:
+            p = os.path.join(reports_dir, name)
+            if os.path.exists(p):
+                imgs.append(p)
+
+        # create a scrollable canvas for images
+        canvas = tk.Canvas(self.results_area)
+        vsb = ttk.Scrollbar(self.results_area, orient='vertical', command=canvas.yview)
+        canvas.configure(yscrollcommand=vsb.set)
+        vsb.pack(side='right', fill='y')
+        canvas.pack(side='left', fill='both', expand=True)
+
+        inner = ttk.Frame(canvas)
+        canvas.create_window((0,0), window=inner, anchor='nw')
+
+        # load and insert images
+        row = 0
+        for img_path in imgs:
+            try:
+                img = tk.PhotoImage(file=img_path)
+                self._report_images.append(img)
+                lbl = ttk.Label(inner, image=img)
+                lbl.grid(row=row, column=0, pady=6, padx=6, sticky='w')
+                row += 1
+            except Exception:
+                # skip images that cannot be loaded
+                continue
+
+        # update scroll region
+        inner.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox('all'))
 
     def _format_cell(self, v):
         if pd.isna(v):
@@ -335,7 +402,7 @@ class PipelineGUI(tk.Tk):
 
     def save_predictions(self):
         if self.last_predictions_df is None:
-            messagebox.showinfo('No predictions', 'No predictions to save. Run "Load and Predict" first.')
+            messagebox.showinfo('Sin predicciones', 'No hay predicciones para guardar. Ejecute "Cargar y Predecir" primero.')
             return
         p = filedialog.asksaveasfilename(defaultextension='.xlsx', filetypes=[('Excel','*.xlsx')])
         if not p:
@@ -343,14 +410,14 @@ class PipelineGUI(tk.Tk):
         try:
             # write to excel
             self.last_predictions_df.to_excel(p, index=False)
-            messagebox.showinfo('Saved', f'Predictions saved to {p}')
+            messagebox.showinfo('Guardado', f'Predicciones guardadas en {p}')
         except Exception as e:
-            messagebox.showerror('Save error', f'Failed to save file: {e}')
+            messagebox.showerror('Error al guardar', f'No se pudo guardar el archivo: {e}')
 
     def generate_template_from_file(self):
         p = self.predict_file_entry.get().strip() or self.data_entry.get().strip()
         if not p:
-            messagebox.showinfo('No file', 'Please select a source file to build template from')
+            messagebox.showinfo('Sin archivo', 'Por favor seleccione un archivo fuente para crear la plantilla')
             return
         try:
             if p.lower().endswith('.csv'):
@@ -358,7 +425,7 @@ class PipelineGUI(tk.Tk):
             else:
                 df = pd.read_excel(p)
         except Exception as e:
-            messagebox.showerror('Read error', f'Failed to read file: {e}')
+            messagebox.showerror('Error de lectura', f'No se pudo leer el archivo: {e}')
             return
 
         # remove result columns
@@ -366,14 +433,14 @@ class PipelineGUI(tk.Tk):
         cols = [c for c in df.columns if c not in result_cols]
         template_df = pd.DataFrame(columns=cols)
 
-        outp = filedialog.asksaveasfilename(defaultextension='.xlsx', filetypes=[('Excel','*.xlsx')], title='Save template as')
+        outp = filedialog.asksaveasfilename(defaultextension='.xlsx', filetypes=[('Excel','*.xlsx')], title='Guardar plantilla como')
         if not outp:
             return
         try:
             template_df.to_excel(outp, index=False)
-            messagebox.showinfo('Template', f'Empty template saved to {outp}')
+            messagebox.showinfo('Plantilla', f'Plantilla vacía guardada en {outp}')
         except Exception as e:
-            messagebox.showerror('Save error', f'Failed to save template: {e}')
+            messagebox.showerror('Error al guardar', f'No se pudo guardar la plantilla: {e}')
 
     def load_columns_for_single(self):
         # use predict_file_entry or ask
@@ -388,7 +455,7 @@ class PipelineGUI(tk.Tk):
             else:
                 df = pd.read_excel(p, nrows=5)
         except Exception as e:
-            messagebox.showerror('Read error', f'Failed to read file: {e}')
+            messagebox.showerror('Error de lectura', f'No se pudo leer el archivo: {e}')
             return
 
         result_cols = ['Probabilidad de accidente', 'Accidente', 'Condicion del Vehiculo']
@@ -404,7 +471,7 @@ class PipelineGUI(tk.Tk):
             e = ttk.Entry(self.single_fields_frame, width=40)
             e.grid(row=i, column=1, sticky='w')
             self.single_entries[c] = e
-        messagebox.showinfo('Loaded', f'Loaded {len(cols)} columns for manual entry')
+        messagebox.showinfo('Cargado', f'Se cargaron {len(cols)} columnas para entrada manual')
 
     def predict_single_case(self):
         if not hasattr(self, 'single_entries') or not self.single_entries:
@@ -423,7 +490,7 @@ class PipelineGUI(tk.Tk):
         try:
             df_prep = load_and_prepare(df)
         except Exception as e:
-            messagebox.showerror('Preprocess error', f'Failed to preprocess single case: {e}')
+            messagebox.showerror('Error de preprocesado', f'No se pudo preprocesar el caso único: {e}')
             return
 
         # Ensure expected columns exist
@@ -449,16 +516,16 @@ class PipelineGUI(tk.Tk):
                 acc_proba = None
             acc_lab = 'Sí' if int(acc_pred) == 1 else 'No'
         except Exception as e:
-            messagebox.showerror('Predict error', f'Prediction failed: {e}')
+            messagebox.showerror('Error de predicción', f'La predicción falló: {e}')
             return
 
         # clip regressions
         prob_pred = float(np.clip(prob_pred, 0.0, 100.0))
         cond_pred = float(np.clip(cond_pred, 0.0, 100.0))
 
-        text = f'Probabilidad de accidente: {prob_pred:.1f}%    Condicion del Vehiculo: {cond_pred:.1f}%    Accidente: {acc_lab}'
+        text = f'Probabilidad de accidente: {prob_pred:.1f}%    Condición del Vehículo: {cond_pred:.1f}%    Accidente: {acc_lab}'
         if acc_proba is not None:
-            text += f'    Accidente_proba: {acc_proba*100:.1f}%'
+            text += f'    Probabilidad accidente: {acc_proba*100:.1f}%'
         self.single_result_label.config(text=text)
 
 

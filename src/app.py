@@ -50,7 +50,7 @@ def predict(sample: dict):
 
     features = ['Mes', 'Hora_hour', 'Hora_min', 'Distancia Kilometros', 'Tipo de Vehiculo', 'Clima']
     if prob_pipe is None or cond_pipe is None or acc_pipe is None:
-        raise HTTPException(status_code=503, detail='Models not available. Run training first.')
+        raise HTTPException(status_code=503, detail='Modelos no disponibles. Ejecute el entrenamiento primero.')
 
     X = df[features]
     p = prob_pipe.predict(X)[0] if prob_pipe is not None else None

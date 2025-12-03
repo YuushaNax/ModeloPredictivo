@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 
 
-def generate(n=10000, out_path="datos_entrenamiento_10000.xlsx"):
+def generate(n=10000, out_path="datos_test.xlsx"):
     rng = np.random.default_rng(42)
 
     # Datos base
@@ -145,9 +145,9 @@ def generate(n=10000, out_path="datos_entrenamiento_10000.xlsx"):
         "Distancia Kilometros": dist,
         "Tipo de Vehiculo": veh,
         "Clima": cl,
-        "Probabilidad de accidente": 0,
-        "Accidente": 0,
-        "Condicion del Vehiculo": 0,
+        "Probabilidad de accidente": "",
+        "Accidente": "",
+        "Condicion del Vehiculo": "",
         # Nuevas columnas
         "Dia de la Semana": dias,
         "Tipo de Carretera": carreteras,
@@ -168,7 +168,7 @@ def generate(n=10000, out_path="datos_entrenamiento_10000.xlsx"):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=int, default=10000, help='Number of rows to generate')
-    parser.add_argument('--output', default='datos_entrenamiento_10000.xlsx', help='Output xlsx file')
+    parser.add_argument('--output', default='datos_test.xlsx', help='Output xlsx file')
     args = parser.parse_args()
     generate(n=args.n, out_path=args.output)
 

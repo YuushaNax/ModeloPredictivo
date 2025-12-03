@@ -29,8 +29,8 @@ def sample_to_df(sample_dict):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sample', required=True, help='Sample as K=V;K=V string')
-    parser.add_argument('--models_dir', default='models', help='Folder where models were saved')
+    parser.add_argument('--sample', required=True, help='Muestra como cadena K=V;K=V')
+    parser.add_argument('--models_dir', default='models', help='Carpeta donde están los modelos guardados')
     args = parser.parse_args()
 
     d = parse_sample_string(args.sample)
@@ -75,12 +75,12 @@ def main():
     p = float(np.clip(p, 0.0, 100.0))
     cval = float(np.clip(cval, 0.0, 100.0))
 
-    # Print nicely
-    print(f'Predicted Probabilidad de accidente: {p:.1f}%')
-    print(f'Predicted Condicion del Vehiculo: {cval:.1f}%')
-    print(f'Predicted Accidente: {"Sí" if int(a) == 1 else "No"} ({int(a)})')
+    # Imprimir en español
+    print(f'Probabilidad de accidente (predicha): {p:.1f}%')
+    print(f'Condición del vehículo (predicha): {cval:.1f}%')
+    print(f'Accidente (predicho): {"Sí" if int(a) == 1 else "No"} ({int(a)})')
     if a_proba is not None:
-        print(f'Predicted Accidente_proba: {a_proba*100:.1f}%')
+        print(f'Probabilidad de accidente (clasificador): {a_proba*100:.1f}%')
 
 
 if __name__ == '__main__':
