@@ -9,6 +9,7 @@ import joblib
 from pathlib import Path
 from src.utils import load_and_prepare
 import src.visualize as visualize
+import src.prediction_viz as prediction_viz
 import numpy as np
 
 
@@ -91,9 +92,39 @@ class PipelineGUI(tk.Tk):
         ttk.Button(res_top, text='Guardar predicciones (Excel)', command=self.save_predictions).grid(row=0, column=4, padx=4)
         ttk.Button(res_top, text='Generar plantilla vacía', command=self.generate_template_from_file).grid(row=1, column=1, sticky='w', pady=4)
 
-        # Area for analysis: plots and metrics (replaces dataset table)
-        self.results_area = ttk.Frame(tab_results)
-        self.results_area.pack(fill='both', expand=True, padx=8, pady=8)
+        # Area for analysis with scrollbars (both vertical and horizontal)
+        results_container = ttk.Frame(tab_results)
+        results_container.pack(fill='both', expand=True, padx=8, pady=8)
+        
+        # Create canvas with both scrollbars
+        self.results_canvas = tk.Canvas(results_container, bg='white')
+        vsb = ttk.Scrollbar(results_container, orient='vertical', command=self.results_canvas.yview)
+        hsb = ttk.Scrollbar(results_container, orient='horizontal', command=self.results_canvas.xview)
+        self.results_canvas.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        
+        # Grid layout for scrollbars
+        self.results_canvas.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+        results_container.grid_rowconfigure(0, weight=1)
+        results_container.grid_columnconfigure(0, weight=1)
+        
+        # Create frame inside canvas
+        self.results_area = ttk.Frame(self.results_canvas)
+        self.results_canvas.create_window((0, 0), window=self.results_area, anchor='nw')
+        
+        # Update scroll region when frame changes
+        def on_frame_configure(event=None):
+            self.results_canvas.configure(scrollregion=self.results_canvas.bbox('all'))
+        
+        self.results_area.bind('<Configure>', on_frame_configure)
+        
+        # Enable mouse wheel scrolling for vertical
+        def _on_mousewheel(event):
+            self.results_canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
+        
+        self.results_canvas.bind_all('<MouseWheel>', _on_mousewheel)
+        
         self._report_images = []
 
         # Tab 3: Single case predictor
@@ -109,8 +140,8 @@ class PipelineGUI(tk.Tk):
         self.single_fields_frame.pack(fill='both', expand=True, padx=8, pady=8)
 
         # place to show single case predictions
-        self.single_result_label = ttk.Label(tab_single, text='Predicción: -')
-        self.single_result_label.pack(padx=8, pady=8)
+        self.single_result_label = tk.Label(tab_single, text='Predicción: -', font=('Courier', 10), justify='left', bg='#f0f0f0', padx=10, pady=10)
+        self.single_result_label.pack(padx=8, pady=8, fill='both')
 
         # keep track of current loaded columns and last predictions
         self.current_nonresult_columns = []
@@ -348,46 +379,51 @@ class PipelineGUI(tk.Tk):
             n = len(input_df)
             mean_prob = mean_cond = acc_rate = None
 
+        # Header for metrics
+        header = ttk.Label(self.results_area, text='📊 RESUMEN DE MÉTRICAS', font=('Helvetica', 12, 'bold'))
+        header.pack(fill='x', padx=6, pady=(12, 6))
+
         metrics_frame = ttk.Frame(self.results_area)
         metrics_frame.pack(fill='x', padx=6, pady=6)
         ttk.Label(metrics_frame, text=f'Filas: {n}').grid(row=0, column=0, sticky='w')
-        ttk.Label(metrics_frame, text=f'Media Prob. Predicha: {mean_prob:.2f}' if mean_prob==mean_prob else 'Media Prob. Predicha: -').grid(row=0, column=1, sticky='w', padx=8)
-        ttk.Label(metrics_frame, text=f'Media Condición Predicha: {mean_cond:.2f}' if mean_cond==mean_cond else 'Media Condición Predicha: -').grid(row=0, column=2, sticky='w', padx=8)
+        ttk.Label(metrics_frame, text=f'Media Prob. Predicha: {mean_prob:.2f}%' if mean_prob==mean_prob else 'Media Prob. Predicha: -').grid(row=0, column=1, sticky='w', padx=8)
+        ttk.Label(metrics_frame, text=f'Media Condición Predicha: {mean_cond:.2f}%' if mean_cond==mean_cond else 'Media Condición Predicha: -').grid(row=0, column=2, sticky='w', padx=8)
         ttk.Label(metrics_frame, text=f'Tasa Accidente predicha: {acc_rate:.3f}' if acc_rate is not None else 'Tasa Accidente predicha: -').grid(row=0, column=3, sticky='w', padx=8)
 
-        # Show plots generated in reports_dir
-        imgs = []
-        for name in ['hist_probabilidad.png', 'count_accidente.png', 'corr_numeric.png', 'box_prob_by_vehicle.png']:
-            p = os.path.join(reports_dir, name)
+        # Generar visualizaciones mejoradas de predicciones
+        try:
+            prediction_viz.generate_all_prediction_visualizations(predictions_df, output_dir=reports_dir)
+        except Exception as e:
+            print(f"Error generando visualizaciones de predicción: {e}")
+
+        # Collect all visualization files with their display names
+        imgs = [
+            ('prediction_summary.png', '📈 Resumen de Predicciones'),
+            ('detailed_metrics.png', '📊 Métricas Detalladas'),
+            ('prediction_quality.png', '✓ Calidad de Predicciones'),
+            ('hist_probabilidad.png', '📉 Distribución de Probabilidades'),
+            ('count_accidente.png', '⚠️ Conteo de Accidentes'),
+            ('corr_numeric.png', '🔗 Correlaciones Numéricas'),
+            ('box_prob_by_vehicle.png', '🚗 Probabilidad por Vehículo'),
+        ]
+
+        # load and insert images with headers
+        for img_name, header_text in imgs:
+            p = os.path.join(reports_dir, img_name)
             if os.path.exists(p):
-                imgs.append(p)
-
-        # create a scrollable canvas for images
-        canvas = tk.Canvas(self.results_area)
-        vsb = ttk.Scrollbar(self.results_area, orient='vertical', command=canvas.yview)
-        canvas.configure(yscrollcommand=vsb.set)
-        vsb.pack(side='right', fill='y')
-        canvas.pack(side='left', fill='both', expand=True)
-
-        inner = ttk.Frame(canvas)
-        canvas.create_window((0,0), window=inner, anchor='nw')
-
-        # load and insert images
-        row = 0
-        for img_path in imgs:
-            try:
-                img = tk.PhotoImage(file=img_path)
-                self._report_images.append(img)
-                lbl = ttk.Label(inner, image=img)
-                lbl.grid(row=row, column=0, pady=6, padx=6, sticky='w')
-                row += 1
-            except Exception:
-                # skip images that cannot be loaded
-                continue
-
-        # update scroll region
-        inner.update_idletasks()
-        canvas.config(scrollregion=canvas.bbox('all'))
+                try:
+                    # Add header for this graphic
+                    img_header = ttk.Label(self.results_area, text=header_text, font=('Helvetica', 11, 'bold'))
+                    img_header.pack(fill='x', padx=6, pady=(12, 6))
+                    
+                    # Load and display image
+                    img = tk.PhotoImage(file=p)
+                    self._report_images.append(img)
+                    lbl = ttk.Label(self.results_area, image=img)
+                    lbl.pack(fill='x', padx=6, pady=6)
+                except Exception:
+                    # skip images that cannot be loaded
+                    continue
 
     def _format_cell(self, v):
         if pd.isna(v):
@@ -523,9 +559,22 @@ class PipelineGUI(tk.Tk):
         prob_pred = float(np.clip(prob_pred, 0.0, 100.0))
         cond_pred = float(np.clip(cond_pred, 0.0, 100.0))
 
-        text = f'Probabilidad de accidente: {prob_pred:.1f}%    Condición del Vehículo: {cond_pred:.1f}%    Accidente: {acc_lab}'
+        # Crear una representación visual mejorada
+        risk_level = "ALTO ⚠️" if prob_pred > 60 else "MEDIO ⚠" if prob_pred > 30 else "BAJO ✓"
+        vehicle_condition = "BUENA ✓" if cond_pred > 80 else "REGULAR ⚠" if cond_pred > 50 else "MALA ⚠️"
+        
+        text = (f'╔════════════════════════════════════════════════════════════════╗\n'
+                f'║                    PREDICCIÓN DEL CASO ÚNICO                    ║\n'
+                f'╠════════════════════════════════════════════════════════════════╣\n'
+                f'║ Riesgo de Accidente:           {prob_pred:6.1f}%    [{risk_level:^15}] ║\n'
+                f'║ Condición del Vehículo:        {cond_pred:6.1f}%    [{vehicle_condition:^15}] ║\n'
+                f'║ Accidente Predicho:            {acc_lab:^8}                      ║\n')
+        
         if acc_proba is not None:
-            text += f'    Probabilidad accidente: {acc_proba*100:.1f}%'
+            text += f'║ Probabilidad de Accidente:     {acc_proba*100:6.1f}%                        ║\n'
+        
+        text += f'╚════════════════════════════════════════════════════════════════╝'
+        
         self.single_result_label.config(text=text)
 
 

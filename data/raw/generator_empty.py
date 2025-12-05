@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 
 
-def generate(n=10000, out_path="datos_test.xlsx"):
+def generate(n=100000, out_path="datos_test.xlsx"):
     rng = np.random.default_rng(42)
 
     # Datos base
@@ -31,8 +31,8 @@ def generate(n=10000, out_path="datos_test.xlsx"):
     iluminacion = rng.choice(["Dia", "Noche"], size=n, p=[0.7, 0.3])
     cinturon = rng.choice(["Sí", "No"], size=n, p=[0.9, 0.1])
 
-    # Condición del vehículo (porcentaje)
-    cond = 50 + rng.random(size=n) * 50  # entre 50% y 100%
+    # Condición del vehículo (porcentaje) - more random distribution
+    cond = rng.random(size=n) * 100  # entre 0% y 100% (más aleatorio)
 
     # -----------------------------
     # LÓGICA DE PROBABILIDAD REALISTA
@@ -167,7 +167,7 @@ def generate(n=10000, out_path="datos_test.xlsx"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n', type=int, default=10000, help='Number of rows to generate')
+    parser.add_argument('--n', type=int, default=100000, help='Number of rows to generate')
     parser.add_argument('--output', default='datos_test.xlsx', help='Output xlsx file')
     args = parser.parse_args()
     generate(n=args.n, out_path=args.output)

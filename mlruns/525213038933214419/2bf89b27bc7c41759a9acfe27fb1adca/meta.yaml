@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/2bf89b27bc7c41759a9acfe27fb1adca/artifacts
+end_time: 1764911526389
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: 2bf89b27bc7c41759a9acfe27fb1adca
+run_name: merciful-wolf-961
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764911526236
+status: 3
+tags: []
+user_id: Fabar

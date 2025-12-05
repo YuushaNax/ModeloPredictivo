@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/bba46106edab40d586bcb3d3c7179730/artifacts
+end_time: 1764940021882
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: bba46106edab40d586bcb3d3c7179730
+run_name: big-ant-204
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764940021649
+status: 3
+tags: []
+user_id: Fabar

@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/ModeloPredictivo/mlruns/525213038933214419/a166ef03bb804c7d89841771ea4613fa/artifacts
+end_time: 1764940029299
+entry_point_name: ''
+experiment_id: '525213038933214419'
+lifecycle_stage: active
+run_id: a166ef03bb804c7d89841771ea4613fa
+run_name: suave-bass-478
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764940022799
+status: 3
+tags: []
+user_id: Fabar
