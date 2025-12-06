@@ -38,41 +38,362 @@ Variables de entrada:
 - Experiencia del conductor
 - Alcohol en sangre
 - Visibilidad
-- Estado de la vía
-- Iluminación
-- Cinturón
+Sistema Predictivo de Seguridad Vial
 
-Variables target:
+Integrantes: Francisco Abarca, Nicolás Burgos, Gerson Fuentealba, Hans Beiza.
+Docente: Florentino Pérez
+Módulo: Minería de Datos
+Fecha: 05-12-2025
 
-Probabilidad de Accidente
-Accidente
-Condición del Vehículo
+Resumen ejecutivo
+El presente informe describe el desarrollo de un Sistema Predictivo de Seguridad Vial para Chile, cuyo objetivo es entregar en tiempo real tres predicciones clave relacionadas con eventos de tránsito: (1) Probabilidad de Accidente (valor continuo entre 0 y 1), (2) Accidente (binario: 0/1) y (3) Condición del Vehículo (puntuación continua que describe el daño o estado). El sistema incluye un pipeline de preprocesamiento, modelos basados en Random Forest (dos regresores y un clasificador), evaluación con métricas estándar, explicabilidad de variables y un endpoint REST `POST /predict` para consumo por aplicaciones externas.
 
-Solución propuesta
-La arquitectura considera un pipeline de datos, modelos Random Forest, dashboard para visualización y API REST para acceder a las predicciones.
+**1. Contexto y objetivo**
+- Problemática: reducir riesgo y apoyar la toma de decisiones en seguridad vial mediante predicciones automatizadas.
+- Alcance: modelo entrenado con ~10.000 registros que contiene variables ambientales, del conductor, y del trayecto. Entregar predicciones en línea y permitir reentrenamiento periódico.
 
-EDA
-Se revisaron distribuciones, patrones temporales, efectos del clima, visibilidad, velocidad y otros factores. Se observaron correlaciones entre clima lluvioso, velocidades altas, visibilidad baja y mayor riesgo de accidente.
+**2. Datos**
+- Tamaño: ~10.000 registros.
+- Variables de entrada (selección):
+  - `mes` (1-12)
+  - `hora_salida` (HH:MM)
+  - `distancia_km` (float)
+  - `tipo_vehiculo` (categorical)
+  - `clima` (categorical: claro, lluvia, niebla, nieve)
+  - `dia_semana` (0-6)
+  - `tipo_carretera` (categorical: urbana, rural, autopista)
+  - `velocidad_promedio` (km/h)
+  - `edad_conductor` (años)
+  - `experiencia_conductor` (años)
+  - `alcohol_sangre` (g/dL o indicador binario)
+  - `visibilidad` (m o categorías)
+  - `estado_via` (categorical)
+  - `iluminacion` (día/noche)
+  - `cinturon` (0/1)
 
-Pipeline de Preprocesamiento
-Incluye conversión de porcentajes a números, transformación de hora HH:MM, limpieza, codificación categórica, normalización y división del dataset en train/test con validación cruzada.
+%- Targets:
+  - `probabilidad_accidente` (float, 0-1)
+  - `accidente` (0/1)
+  - `condicion_vehiculo` (float, ej. 0-100 o escala 0-1)
 
-Modelado Random Forest
-Se entrenaron tres modelos Random Forest: Regresor (Probabilidad), Clasificador (Accidente), Regresor (Condición del Vehículo).
-Ejemplo de hiperparámetros: n_estimators=300, max_depth=15, min_samples_split=4, random_state=42.
+**3. Exploratory Data Analysis (EDA)**
+Se realizó un EDA orientado a identificar:
+- Distribuciones univariantes (histogramas, KDE).
+- Series temporales por `mes` y `hora_salida`.
+- Correlaciones entre `velocidad_promedio`, `visibilidad`, `clima` y las variables target.
+- Valores faltantes y outliers.
 
-Métricas de evaluación
-Regresión: MAE, RMSE, R².
-Clasificación: Accuracy, Precision, Recall, F1-score y AUC-ROC.
+Hallazgos principales:
+- Mayor probabilidad de accidente en condiciones de lluvia y baja visibilidad.
+- Aumento del riesgo en tramos con velocidades elevadas y en horas nocturnas.
+- Algunas variables presentan correlación moderada (|r|>0.3) con los targets: `velocidad_promedio`, `visibilidad`, `clima`.
 
-Importancia de variables
-Entre las variables más influyentes se encontraron: clima, visibilidad, velocidad promedio, tipo de carretera, hora de salida, alcohol en sangre, iluminación y condición del vehículo.
+Ejemplo de código EDA (Python):
 
-Modelo
-Endpoint: POST /predict.
-Devuelve probabilidad accidente, accidente y condicion_vehiculo. Incluye validaciones de tipos y manejo de errores.
+```python
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-Pruebas y evidencias
+df = pd.read_csv('data/processed/dataset.csv')
+sns.histplot(df['velocidad_promedio'], kde=True)
+plt.title('Distribución de velocidad promedio')
+plt.show()
 
-Conclusiones
-El sistema basado en Random Forest permite estimar la probabilidad de accidente, ocurrencia y condición del vehículo con alta robustez. Se recomienda mantener el dataset actualizado y reentrenar periódicamente.
+sns.boxplot(x='clima', y='probabilidad_accidente', data=df)
+plt.title('Probabilidad de accidente por clima')
+plt.show()
+
+corr = df.corr()
+sns.heatmap(corr, annot=True, fmt='.2f')
+plt.title('Matriz de correlación')
+plt.show()
+```
+
+**4. Pipeline de preprocesamiento**
+El pipeline estándar incluye:
+- Limpieza: eliminar duplicados, tratar faltantes (imputación por mediana o categoría `unknown`).
+- Transformaciones de tiempo: convertir `hora_salida` a `hora_decimal` y extraer `es_noche`.
+- Conversión de porcentajes y normalización.
+- Codificación categórica: `OneHotEncoder` o `TargetEncoder` según cardinalidad.
+- Escalado: `StandardScaler` para regresores.
+- Split: Train/Test (80/20) y validación cruzada (K-Fold con K=5).
+
+Ejemplo de preprocesamiento con scikit-learn:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+import pandas as pd
+
+num_features = ['distancia_km', 'velocidad_promedio', 'edad_conductor', 'experiencia_conductor']
+cat_features = ['tipo_vehiculo', 'clima', 'tipo_carretera', 'iluminacion']
+
+num_pipeline = Pipeline([
+	('imputer', SimpleImputer(strategy='median')),
+	('scaler', StandardScaler()),
+])
+
+cat_pipeline = Pipeline([
+	('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+	('onehot', OneHotEncoder(handle_unknown='ignore')),
+])
+
+preprocessor = ColumnTransformer([
+	('num', num_pipeline, num_features),
+	('cat', cat_pipeline, cat_features),
+])
+
+X = pd.read_csv('data/processed/features.csv')
+y = pd.read_csv('data/processed/targets.csv')
+
+X_preprocessed = preprocessor.fit_transform(X)
+```
+
+**5. Ingeniería de features**
+- Crear interacciones: `velocidad_promedio * visibilidad`.
+- Agregar variables temporales: `hora_bin` (mañana/tarde/noche).
+- Flags binarios: `tiene_alcohol`, `es_noche`, `uso_cinturon`.
+
+Ejemplo rápido de feature engineering:
+
+```python
+X['hora_decimal'] = X['hora_salida'].str.split(':').apply(lambda x: int(x[0]) + int(x[1])/60)
+X['es_noche'] = X['hora_decimal'].apply(lambda h: 1 if (h < 6 or h > 20) else 0)
+X['vel_vis'] = X['velocidad_promedio'] * X['visibilidad']
+```
+
+**6. Modelado**
+Se entrenan tres pipelines independientes (cada uno incluye preprocesamiento + estimator):
+- `probabilidad_accidente`: RandomForestRegressor
+- `accidente` (0/1): RandomForestClassifier
+- `condicion_vehiculo`: RandomForestRegressor
+
+Ejemplo de entrenamiento para el clasificador:
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score, train_test_split
+import joblib
+
+X_train, X_test, y_train, y_test = train_test_split(X, y['accidente'], test_size=0.2, random_state=42)
+
+clf_pipeline = Pipeline([
+	('preproc', preprocessor),
+	('clf', RandomForestClassifier(n_estimators=300, max_depth=15, min_samples_split=4, random_state=42, n_jobs=-1))
+])
+
+clf_pipeline.fit(X_train, y_train)
+joblib.dump(clf_pipeline, 'models/acc_pipeline.joblib')
+
+scores = cross_val_score(clf_pipeline, X_train, y_train, cv=5, scoring='f1')
+print('CV F1 mean:', scores.mean())
+```
+
+Hiperparámetros iniciales (ejemplo):
+- `n_estimators=300`
+- `max_depth=15`
+- `min_samples_split=4`
+- `random_state=42`
+
+Se recomienda realizar búsqueda de hiperparámetros con `RandomizedSearchCV` o `Optuna` para optimizar tiempo.
+
+**7. Métricas y evaluación**
+- Regresión: MAE, RMSE, R².
+- Clasificación: Accuracy, Precision, Recall, F1-score, AUC-ROC.
+
+Ejemplo de evaluación:
+
+```python
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, mean_absolute_error, mean_squared_error, r2_score
+
+# Clasificador
+y_pred = clf_pipeline.predict(X_test)
+y_prob = clf_pipeline.predict_proba(X_test)[:,1]
+print('Accuracy:', accuracy_score(y_test, y_pred))
+print('F1:', f1_score(y_test, y_pred))
+print('AUC:', roc_auc_score(y_test, y_prob))
+
+# Regresor
+reg = joblib.load('models/prob_pipeline.joblib')
+y_pred_reg = reg.predict(X_test_reg)
+print('MAE:', mean_absolute_error(y_test_reg, y_pred_reg))
+print('RMSE:', mean_squared_error(y_test_reg, y_pred_reg, squared=False))
+print('R2:', r2_score(y_test_reg, y_pred_reg))
+```
+
+**8. Interpretabilidad y explicación de modelos**
+Para explicar predicciones y calcular importancia de variables se recomienda:
+- `feature_importances_` de RandomForest para ranking global.
+- `SHAP` para explicaciones locales y globales.
+
+Ejemplo simple con SHAP:
+
+```python
+import shap
+
+model = clf_pipeline.named_steps['clf']
+X_sample = preprocessor.transform(X_test[:200])
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X_sample)
+shap.summary_plot(shap_values, X_test[:200], plot_type='bar')
+```
+
+**9. Despliegue (API)**
+Se propone un endpoint `POST /predict` que recibe JSON con features y devuelve las tres predicciones. A continuación un ejemplo con `FastAPI` (recomendado por rendimiento y validación con Pydantic):
+
+Archivo `app.py` (ejemplo):
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import joblib
+import numpy as np
+
+app = FastAPI()
+
+class PredictRequest(BaseModel):
+	mes: int
+	hora_salida: str
+	distancia_km: float
+	tipo_vehiculo: str
+	clima: str
+	dia_semana: int
+	tipo_carretera: str
+	velocidad_promedio: float
+	edad_conductor: int
+	experiencia_conductor: int
+	alcohol_sangre: float
+	visibilidad: float
+	estado_via: str
+	iluminacion: str
+	cinturon: int
+
+# Cargar modelos
+acc_model = joblib.load('models/acc_pipeline.joblib')
+prob_model = joblib.load('models/prob_pipeline.joblib')
+cond_model = joblib.load('models/cond_pipeline.joblib')
+
+@app.post('/predict')
+def predict(payload: PredictRequest):
+	try:
+		# Convertir payload a DataFrame o array compatible con preprocessor
+		X = [payload.dict().values()]
+		# Preprocessing incluido en pipeline
+		prob = prob_model.predict_proba(X)[0,1] if hasattr(prob_model, 'predict_proba') else float(prob_model.predict(X)[0])
+		acc = int(acc_model.predict(X)[0])
+		cond = float(cond_model.predict(X)[0])
+		return {
+			'probabilidad_accidente': float(prob),
+			'accidente': acc,
+			'condicion_vehiculo': cond
+		}
+	except Exception as e:
+		raise HTTPException(status_code=400, detail=str(e))
+
+# Ejecutar: uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+Ejemplo de payload JSON para `/predict`:
+
+```json
+{
+  "mes": 6,
+  "hora_salida": "23:15",
+  "distancia_km": 12.5,
+  "tipo_vehiculo": "automovil",
+  "clima": "lluvia",
+  "dia_semana": 5,
+  "tipo_carretera": "autopista",
+  "velocidad_promedio": 110.0,
+  "edad_conductor": 34,
+  "experiencia_conductor": 10,
+  "alcohol_sangre": 0.02,
+  "visibilidad": 200.0,
+  "estado_via": "húmeda",
+  "iluminacion": "noche",
+  "cinturon": 1
+}
+```
+
+**10. Pruebas y validación**
+- Unit tests para funciones de preprocesamiento y transformaciones.
+- Tests de integración para el endpoint `/predict` (usar `pytest` y `httpx` o `requests`).
+
+Ejemplo de test con `pytest` (archivo `tests/test_predict.py`):
+
+```python
+from fastapi.testclient import TestClient
+from app import app
+
+client = TestClient(app)
+
+def test_predict_success():
+	payload = { ... }  # usar payload de ejemplo anterior
+	resp = client.post('/predict', json=payload)
+	assert resp.status_code == 200
+	body = resp.json()
+	assert 'probabilidad_accidente' in body
+	assert 'accidente' in body
+	assert 'condicion_vehiculo' in body
+```
+
+**11. Infraestructura y operaciones (SRE)**
+- Contenerizar con `Docker` y desplegar en un servicio (Azure App Service, AWS ECS, GCP Run o Kubernetes).
+- Monitoreo: métricas de latencia, tasa de error y drift de datos (MLflow y Prometheus/Grafana).
+- Pipelines CI/CD: tests automáticos, linters, y despliegue automatizado.
+
+Dockerfile básico:
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**12. Resultados y métricas obtenidas (ejemplo ficticio)**
+- Clasificador `accidente`: Accuracy=0.87, F1=0.74, AUC=0.86
+- Regresor `probabilidad_accidente`: MAE=0.045, RMSE=0.067, R2=0.62
+- Regresor `condicion_vehiculo`: MAE=3.5 (escala 0-100), R2=0.55
+
+Estos valores son resultados de muestra; se recomienda realizar validaciones adicionales y control de sesgos.
+
+**13. Consideraciones éticas y de privacidad**
+- Asegurar anonimización de datos personales.
+- Evaluar sesgos por edad, zona o tipo de vehículo.
+- Registro de decisiones automáticas y posibilidad de apelación.
+
+**14. Recomendaciones**
+- Mantener pipeline de reentrenamiento cada 3-6 meses.
+- Monitorizar drift y retestar umbrales de actuación.
+- Integrar explicaciones por usuario (SHAP) en la interfaz.
+
+**15. Conclusiones**
+El enfoque basado en Random Forests proporciona un balance entre interpretabilidad y rendimiento para las tareas planteadas. La arquitectura propuesta (preprocessing + modelos + API + dashboard) permite desplegar un sistema de soporte a la decisión que puede integrarse con señales en tiempo real y alimentar alertas o recomendaciones operativas.
+
+Anexos
+- Estructura de carpetas sugerida:
+  - `data/raw/`, `data/processed/`
+  - `src/` (scripts y app)
+  - `models/` (artefactos joblib)
+  - `notebooks/` (EDA y experimentación)
+  - `tests/`
+
+- Lista de paquetes recomendados (ejemplo `requirements.txt`):
+```
+pandas
+numpy
+scikit-learn
+joblib
+fastapi
+uvicorn[standard]
+shap
+matplotlib
+seaborn
+pytest
+```
